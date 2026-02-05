@@ -65,31 +65,28 @@ def check_stock():
             sg_linux_status = dc.get("linuxStatus")
             break
 
-    # Singapore Time (SGT)
     now_sgt = datetime.now(timezone.utc).astimezone(ZoneInfo("Asia/Singapore"))
     timestamp = now_sgt.strftime("%Y-%m-%d %H:%M:%S SGT")
 
     if sg_linux_status == "available":
-        message = (
-            "🔔 <b>OVHCloud VPS Status Change - Singapore!</b>\n\n"
-            "📍 <b>Datacenter:</b> Singapore (SGP)\n"
-            f"🕐 <b>Time:</b> {timestamp}\n\n"
-            "🐧 <b>Linux VPS Status:</b>\n"
-            "✅ Available\n\n"
-            "Order now:\n"
-            "https://www.ovhcloud.com/en-sg/vps/"
-        )
-
-        print(message)
-        send_telegram(message)
-
+        status_icon = "✅"
+        status_text = "Available"
     elif sg_linux_status == "out-of-stock":
-        print(f"[{timestamp}] Singapore Linux VPS still out of stock.")
-
+        status_icon = "❌"
+        status_text = "Out of stock"
     else:
-        msg = f"⚠️ Unknown Singapore Linux status from OVH API: {sg_linux_status}"
-        print(msg)
-        send_telegram(msg)
+        status_icon = "⚠️"
+        status_text = f"Unknown ({sg_linux_status})"
+
+    message = (
+        "🔔 <b>OVHCloud VPS Status Check - Singapore</b>\n\n"
+        "📍 <b>Datacenter:</b> Singapore (SGP)\n"
+        f"🕐 <b>Time:</b> {timestamp}\n\n"
+        "🐧 <b>Linux VPS Status:</b>\n"
+        f"{status_icon} {status_text}\n\n"
+        "Order page:\n"
+        "https://www.ovhcloud.com/en-sg/vps/"
+    )
 
 if __name__ == "__main__":
     check_stock()
