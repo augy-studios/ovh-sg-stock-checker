@@ -1,31 +1,21 @@
 import os
 import requests
 from datetime import datetime, timezone
-from zoneinfo import ZoneInfo 
-
+from zoneinfo import ZoneInfo
 from dotenv import load_dotenv
 
+# Load .env safely
 load_dotenv(os.path.join(os.path.dirname(__file__), ".env"))
 
 API_URL = "https://www.ovhcloud.com/ca/engine/api/v1/vps/order/rule/datacenter/?ovhSubsidiary=SG&os=Debian%2013&planCode=vps-2025-model2"
 
-# VPS models to check
-VPS_MODELS = [
-    "VPS-1",
-    "VPS-2",
-    "VPS-3",
-    "VPS-4",
-    "VPS-5",
-    "VPS-6",
-]
-
 TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
-TELEGRAM_CHAT_IDS = os.getenv("TELEGRAM_CHAT_IDS", "")  # comma separated
+TELEGRAM_CHAT_IDS = os.getenv("TELEGRAM_CHAT_IDS", "")
 
 
 def send_telegram(message: str):
     if not TELEGRAM_BOT_TOKEN or not TELEGRAM_CHAT_IDS:
-        print("Telegram not configured.")
+        print("❌ Telegram not configured.")
         return
 
     for chat_id in TELEGRAM_CHAT_IDS.split(","):
@@ -41,12 +31,15 @@ def send_telegram(message: str):
         }
 
         try:
-            requests.post(url, json=payload, timeout=15)
+            r = requests.post(url, json=payload, timeout=15)
+            print(f"Telegram response ({chat_id}): {r.text}")
         except Exception as e:
             print(f"Failed to send Telegram message to {chat_id}: {e}")
 
 
 def check_stock():
+    print(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] Checking OVH SG Linux VPS stock...")
+
     try:
         response = requests.get(API_URL, timeout=30)
         response.raise_for_status()
@@ -87,6 +80,10 @@ def check_stock():
         "Order page:\n"
         "https://www.ovhcloud.com/en-sg/vps/"
     )
+
+    print(message)
+    send_telegram(message)
+
 
 if __name__ == "__main__":
     check_stock()

@@ -63,7 +63,7 @@ def main():
                 check_stock()
                 set_last_run(now)
 
-        time.sleep(60)  # check every minute
+        time.sleep(60)
 
 
 if __name__ == "__main__":
