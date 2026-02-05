@@ -1,1 +1,0 @@
-0 * * * * /usr/bin/python3 ../checker.py >> /var/log/ovh_vps_checker.log 2>&1
