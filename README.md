@@ -10,14 +10,7 @@
 4. Edit `.env` with your Telegram bot token and chat IDs
 
 5. Run manually:
-   python3 checker.py
-
-## Cron
-
-Edit crontab:
-   crontab -e
-
-Add line from `cron.txt`
+   `python3 scheduler.py`
 
 ## Notes
 
