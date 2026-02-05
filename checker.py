@@ -1,6 +1,7 @@
 import os
 import requests
-from datetime import datetime
+from datetime import datetime, timezone
+from zoneinfo import ZoneInfo 
 
 API_URL = "https://www.ovhcloud.com/ca/engine/api/v1/vps/order/rule/datacenter/?ovhSubsidiary=SG&os=Debian%2013&planCode=vps-2025-model2"
 
@@ -52,50 +53,39 @@ def check_stock():
         send_telegram(msg)
         return
 
-    available = []
-    out_of_stock = []
+    datacenters = data.get("datacenters", [])
 
-    # Expected structure: list of plans with availability status
-    for item in data:
-        plan = item.get("planCode", "")
-        availability = item.get("availability", "")
+    sg_linux_status = None
+    for dc in datacenters:
+        if dc.get("datacenter") == "SGP":
+            sg_linux_status = dc.get("linuxStatus")
+            break
 
-        for model in VPS_MODELS:
-            if model.lower() in plan.lower():
-                if availability.lower() == "available":
-                    available.append(model)
-                else:
-                    out_of_stock.append(model)
+    # Singapore Time (SGT)
+    now_sgt = datetime.now(timezone.utc).astimezone(ZoneInfo("Asia/Singapore"))
+    timestamp = now_sgt.strftime("%Y-%m-%d %H:%M:%S SGT")
 
-    timestamp = datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S UTC")
+    if sg_linux_status == "available":
+        message = (
+            "🔔 <b>OVHCloud VPS Status Change - Singapore!</b>\n\n"
+            "📍 <b>Datacenter:</b> Singapore (SGP)\n"
+            f"🕐 <b>Time:</b> {timestamp}\n\n"
+            "🐧 <b>Linux VPS Status:</b>\n"
+            "✅ Available\n\n"
+            "Order now:\n"
+            "https://www.ovhcloud.com/en-sg/vps/"
+        )
 
-    message_lines = [
-        f"<b>OVH SG VPS Stock Check</b>",
-        f"Time: {timestamp}",
-        "",
-        "<b>Available:</b>",
-    ]
-
-    if available:
-        message_lines.extend([f"✅ {m}" for m in sorted(set(available))])
-    else:
-        message_lines.append("(none)")
-
-    message_lines.append("")
-    message_lines.append("<b>Out of Stock:</b>")
-
-    if out_of_stock:
-        message_lines.extend([f"❌ {m}" for m in sorted(set(out_of_stock))])
-    else:
-        message_lines.append("(none)")
-
-    message = "\n".join(message_lines)
-
-    print(message)
-
-    if available:
+        print(message)
         send_telegram(message)
 
+    elif sg_linux_status == "out-of-stock":
+        print(f"[{timestamp}] Singapore Linux VPS still out of stock.")
+
+    else:
+        msg = f"⚠️ Unknown Singapore Linux status from OVH API: {sg_linux_status}"
+        print(msg)
+        send_telegram(msg)
 
 if __name__ == "__main__":
     check_stock()

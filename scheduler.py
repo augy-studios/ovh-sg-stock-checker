@@ -1,6 +1,6 @@
 import time
 import sqlite3
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from checker import check_stock
 
 DB_FILE = "scheduler.db"
@@ -49,7 +49,7 @@ def main():
     print("SQLite scheduler started...")
 
     while True:
-        now = datetime.utcnow()
+        now = datetime.now(timezone.utc)
         last_run = get_last_run()
 
         if last_run is None:
