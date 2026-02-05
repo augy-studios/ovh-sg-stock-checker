@@ -3,6 +3,10 @@ import requests
 from datetime import datetime, timezone
 from zoneinfo import ZoneInfo 
 
+from dotenv import load_dotenv
+
+load_dotenv(os.path.join(os.path.dirname(__file__), ".env"))
+
 API_URL = "https://www.ovhcloud.com/ca/engine/api/v1/vps/order/rule/datacenter/?ovhSubsidiary=SG&os=Debian%2013&planCode=vps-2025-model2"
 
 # VPS models to check
