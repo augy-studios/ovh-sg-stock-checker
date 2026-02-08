@@ -40,13 +40,16 @@ def set_last_run(ts: datetime):
     conn.close()
 
 
-def next_hour(dt: datetime):
-    return (dt.replace(minute=0, second=0, microsecond=0) + timedelta(hours=1))
+def next_run_30min(dt: datetime):
+    base = dt.replace(second=0, microsecond=0)
+    minute_block = (base.minute // 30) * 30
+    next_block = base.replace(minute=minute_block) + timedelta(minutes=30)
+    return next_block
 
 
 def main():
     init_db()
-    print("SQLite scheduler started...")
+    print("SQLite scheduler started (30-minute mode)...")
 
     while True:
         now = datetime.now(timezone.utc)
@@ -57,9 +60,9 @@ def main():
             check_stock()
             set_last_run(now)
         else:
-            target = next_hour(last_run)
+            target = next_run_30min(last_run)
             if now >= target:
-                print(f"Hourly trigger reached ({target}) → running check")
+                print(f"30-minute trigger reached ({target}) → running check")
                 check_stock()
                 set_last_run(now)
 

@@ -7,7 +7,11 @@ from dotenv import load_dotenv
 # Load .env safely
 load_dotenv(os.path.join(os.path.dirname(__file__), ".env"))
 
-API_URL = "https://www.ovhcloud.com/ca/engine/api/v1/vps/order/rule/datacenter/?ovhSubsidiary=SG&os=Debian%2013&planCode=vps-2025-model2"
+# VPS-2 (model2)
+API_VPS2 = "https://www.ovhcloud.com/ca/engine/api/v1/vps/order/rule/datacenter/?ovhSubsidiary=SG&os=Debian%2013&planCode=vps-2025-model2"
+
+# VPS-1 (model1)
+API_VPS1 = "https://www.ovhcloud.com/ca/engine/api/v1/vps/order/rule/datacenter/?ovhSubsidiary=SG&os=Debian%2013&planCode=vps-2025-model1"
 
 TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
 TELEGRAM_CHAT_IDS = os.getenv("TELEGRAM_CHAT_IDS", "")
@@ -37,49 +41,52 @@ def send_telegram(message: str):
             print(f"Failed to send Telegram message to {chat_id}: {e}")
 
 
-def check_stock():
-    print(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] Checking OVH SG Linux VPS stock...")
-
+def get_sg_linux_status(api_url):
     try:
-        response = requests.get(API_URL, timeout=30)
-        response.raise_for_status()
-        data = response.json()
+        r = requests.get(api_url, timeout=30)
+        r.raise_for_status()
+        data = r.json()
     except Exception as e:
-        msg = f"❌ OVH API request failed: {e}"
-        print(msg)
-        send_telegram(msg)
-        return
+        print(f"API error ({api_url}): {e}")
+        return None
 
-    datacenters = data.get("datacenters", [])
-
-    sg_linux_status = None
-    for dc in datacenters:
+    for dc in data.get("datacenters", []):
         if dc.get("datacenter") == "SGP":
-            sg_linux_status = dc.get("linuxStatus")
-            break
+            return dc.get("linuxStatus")
+    return None
+
+
+def check_stock():
+    print(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] Checking OVH SG VPS-1 & VPS-2 Linux stock...")
+
+    vps1_status = get_sg_linux_status(API_VPS1)
+    vps2_status = get_sg_linux_status(API_VPS2)
 
     now_sgt = datetime.now(timezone.utc).astimezone(ZoneInfo("Asia/Singapore"))
     timestamp = now_sgt.strftime("%Y-%m-%d %H:%M:%S SGT")
 
-    if sg_linux_status == "available":
-        status_icon = "✅"
-        status_text = "Available"
-    elif sg_linux_status == "out-of-stock":
-        status_icon = "❌"
-        status_text = "Out of stock"
-    else:
-        status_icon = "⚠️"
-        status_text = f"Unknown ({sg_linux_status})"
+    def icon(status):
+        return "✅" if status == "available" else "❌"
+
+    vps1_icon = icon(vps1_status)
+    vps2_icon = icon(vps2_status)
+
+    any_available = (vps1_status == "available") or (vps2_status == "available")
 
     message = (
         "🔔 <b>OVHCloud VPS Status Check - Singapore</b>\n\n"
         "📍 <b>Datacenter:</b> Singapore (SGP)\n"
         f"🕐 <b>Time:</b> {timestamp}\n\n"
-        "🐧 <b>Linux VPS Status:</b>\n"
-        f"{status_icon} {status_text}\n\n"
-        "Order page:\n"
-        "https://www.ovhcloud.com/en-sg/vps/"
+        "🐧 <b>Linux VPS Availability:</b>\n"
+        f"{vps1_icon} VPS-1\n"
+        f"{vps2_icon} VPS-2\n"
     )
+
+    if any_available:
+        message += (
+            "\nOrder page:\n"
+            "https://www.ovhcloud.com/en-sg/vps/"
+        )
 
     print(message)
     send_telegram(message)
